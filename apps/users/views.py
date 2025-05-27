@@ -40,6 +40,9 @@ class UserProfileView(
     def patch(self, request, *args, **kwargs):
         return self.partial_update(request, *args, **kwargs)
 
+class UserDelete(generics.GenericAPIView, mixins.DestroyModelMixin):
+    queryset = User.objects.all()
+    permission_classes = [IsAuthenticated]
 
 class ChangePasswordView(generics.GenericAPIView):
     serializer_class = ChangePasswordSerializer
