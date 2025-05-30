@@ -57,6 +57,7 @@ class User(AbstractUser, PermissionsMixin):
     passport_photo_with_face = models.ImageField(upload_to='passport_photos/with_face/', null=True, blank=True)
     passport_front = models.ImageField(upload_to='passport_photos/front/', null=True, blank=True)
     passport_back = models.ImageField(upload_to='passport_photos/back/', null=True, blank=True)
+    executor_balance = models.PositiveIntegerField(default=0, verbose_name='Баланс исполнителя (сом)')
 
     objects = CustomUserManager()
 

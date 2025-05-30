@@ -1,19 +1,32 @@
 from rest_framework import serializers
 from .models import User
-import re
+import re, uuid
 from apps.users.utils import set_reset_code, send_reset_code
 from core.passport_classifier.utils import predict_passport_photo
+from apps.users.utils import generate_code, get_reset_code, delete_reset_code 
 
 
 class UserSerializer(serializers.ModelSerializer):
+    executor_balance = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = [
             'id', 'email', 'phone', 'role',
             'is_verified', 'replies_balance',
+            'executor_balance',  # Добавлено
             'date_joined', 'is_active'
         ]
-        read_only_fields = ['is_verified', 'replies_balance', 'date_joined', 'is_active']
+        read_only_fields = [
+            'is_verified', 'replies_balance', 'executor_balance',
+            'date_joined', 'is_active'
+        ]
+
+    def get_executor_balance(self, obj):
+        if obj.role == "исполнитель":
+            return obj.executor_balance
+        return None  # не возвращаем значение для заказчиков
+
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -72,6 +85,15 @@ class RegisterSerializer(serializers.ModelSerializer):
 
         return User.objects.create_user(**validated_data)
 
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Пользователь с таким email уже существует.")
+        return value
+
+    def validate_username(self, value):
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError("Пользователь с таким username уже существует.")
+        return value
 
 
 

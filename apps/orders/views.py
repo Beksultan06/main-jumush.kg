@@ -5,7 +5,7 @@ from rest_framework.decorators import action
 from .models import Orders
 from .serializers import OrderSerializer
 from apps.users.permissions import IsCustomerPermission, IsExecutorPermission
-
+from django.db import transaction
 
 # 👤 Показывает и создаёт заказы для заказчика
 class CustomerOrderViewSet(viewsets.ModelViewSet):
@@ -41,35 +41,44 @@ class TakeOrderViewSet(viewsets.GenericViewSet):
 
     @action(detail=True, methods=['post'], url_path='take')
     def take_order(self, request, pk=None):
-        order = self.get_object()
+        with transaction.atomic():
+            try:
+                order = Orders.objects.select_for_update().get(pk=pk)
+            except Orders.DoesNotExist:
+                return Response({"detail": "Заказ не найден."}, status=status.HTTP_404_NOT_FOUND)
 
-        if order.is_taken:
-            return Response({"detail": "Этот заказ уже принят."}, status=status.HTTP_400_BAD_REQUEST)
+            if order.is_taken:
+                return Response({"detail": "Этот заказ уже принят."}, status=status.HTTP_400_BAD_REQUEST)
 
-        if not order.is_paid:
-            return Response({"detail": "Вы должны оплатить заказ перед тем, как принять его."}, status=status.HTTP_402_PAYMENT_REQUIRED)
+            if not order.is_paid:
+                return Response({"detail": "Вы должны оплатить заказ перед тем, как принять его."}, status=status.HTTP_402_PAYMENT_REQUIRED)
 
-        order.executor = request.user
-        order.is_taken = True
-        order.save()
-        return Response({"detail": "Заказ успешно принят."})
+            order.executor = request.user
+            order.is_taken = True
+            order.save()
+            return Response({"detail": "Заказ успешно принят."})
 
     @action(detail=True, methods=['post'], url_path='pay')
     def pay_order(self, request, pk=None):
         order = self.get_object()
+        user = request.user
 
         if order.is_paid:
             return Response({"detail": "Заказ уже оплачен."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Симуляция списания средств — здесь будет интеграция с платежной системой
-        # Например: balance = request.user.balance (если ты реализуешь кошелёк позже)
-        # Пока просто выставим is_paid = True
+        if user.executor_balance < order.price_for_executor:
+            return Response({
+                "detail": "Недостаточно средств. Пополните баланс минимум на 50 сомов.",
+                "your_balance": user.executor_balance
+            }, status=status.HTTP_402_PAYMENT_REQUIRED)
+
+        user.executor_balance -= order.price_for_executor
+        user.save()
 
         order.is_paid = True
         order.save()
 
         return Response({
-            "detail": f"Вы успешно оплатили {order.price_for_executor} сомов за доступ к заказу.",
-            "order_id": order.id,
-            "paid": True
-        })
+            "detail": f"С вашего баланса списано {order.price_for_executor} сомов. Теперь вы можете принять заказ.",
+            "remaining_balance": user.executor_balance
+        }, status=status.HTTP_200_OK)
