@@ -25,6 +25,7 @@ class Orders(models.Model):
         verbose_name='Исполнитель'
     )
     is_taken = models.BooleanField(default=False, verbose_name='Заказ принят')
+    is_paid = models.BooleanField(default=False, verbose_name='Заказ оплачен исполнителем')
 
     def __str__(self):
         return self.title

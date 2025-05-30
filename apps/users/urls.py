@@ -5,6 +5,7 @@ from apps.users.views import (
     ChangePasswordView,
     RequestResetPasswordView,
     ConfirmResetPasswordView,
+    UserDelete
 )
 from rest_framework_simplejwt.views import TokenRefreshView, TokenObtainPairView
 

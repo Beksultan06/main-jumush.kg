@@ -5,7 +5,7 @@ from .views import CustomerOrderViewSet, ExecutorOrderListViewSet, TakeOrderView
 router = DefaultRouter()
 router.register(r'customer/orders', CustomerOrderViewSet, basename='customer-orders')
 router.register(r'executor/orders', ExecutorOrderListViewSet, basename='executor-orders')
-router.register(r'orders', TakeOrderViewSet, basename='take-orders')
+router.register(r'', TakeOrderViewSet, basename='orders')
 
 urlpatterns = [
     path('', include(router.urls)),
