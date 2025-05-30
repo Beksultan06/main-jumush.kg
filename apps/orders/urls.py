@@ -4,7 +4,7 @@ from .views import CustomerOrderViewSet, ExecutorOrderListViewSet, TakeOrderView
 
 router = DefaultRouter()
 router.register(r'customer/orders', CustomerOrderViewSet, basename='customer-orders')
-router.register(r'executor/orders', ExecutorOrderListViewSet, basename='executor-orders')
+router.register(r'list/orders', ExecutorOrderListViewSet, basename='list-orders')
 router.register(r'', TakeOrderViewSet, basename='orders')
 
 urlpatterns = [

@@ -67,7 +67,6 @@ class User(AbstractUser, PermissionsMixin):
         return self.email
 
     def save(self, *args, **kwargs):
-        # сохраняем оригиналы
         super().save(*args, **kwargs)
 
         fields_to_convert = {

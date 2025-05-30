@@ -2,6 +2,7 @@ from django.db import models
 import os
 from apps.utils import convert_image_to_webp
 from django.conf import settings
+from apps.users.models import UserRegion
 
 
 class Orders(models.Model):
@@ -26,6 +27,8 @@ class Orders(models.Model):
     )
     is_taken = models.BooleanField(default=False, verbose_name='Заказ принят')
     is_paid = models.BooleanField(default=False, verbose_name='Заказ оплачен исполнителем')
+    region = models.ForeignKey(UserRegion, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Регион заказа')
+    price_for_executor = models.PositiveIntegerField(default=50, verbose_name='Цена для исполнителя (сом)')
 
     def __str__(self):
         return self.title

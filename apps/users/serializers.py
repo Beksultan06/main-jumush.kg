@@ -39,15 +39,12 @@ class RegisterSerializer(serializers.ModelSerializer):
         role = data.get("role")
 
         if role and isinstance(role, str) and role.lower() == "исполнитель":
-            # Проверяем наличие всех трёх фото
             if not data.get("passport_photo_with_face") or not data.get("passport_front") or not data.get("passport_back"):
                 raise serializers.ValidationError({
                     "passport_photo_with_face": "Обязательно загрузите фото с паспортом.",
                     "passport_front": "Обязательно загрузите переднюю сторону паспорта.",
                     "passport_back": "Обязательно загрузите обратную сторону паспорта.",
                 })
-
-            # Проверка через ML модель
             if not predict_passport_photo(data["passport_photo_with_face"], expected_type='face'):
                 raise serializers.ValidationError({
                     "passport_photo_with_face": "Фото с паспортом не соответствует требованиям."
