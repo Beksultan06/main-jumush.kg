@@ -188,13 +188,11 @@ SIMPLE_JWT = {
     "SLIDING_TOKEN_REFRESH_SERIALIZER": "rest_framework_simplejwt.serializers.TokenRefreshSlidingSerializer",
 }
 
-# Разрешить запросы CORS от определённых источников
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://192.168.205.254:3000",
 ]
 
-# Разрешить определённые методы
 CORS_ALLOW_METHODS = [
     "DELETE",
     "GET",
@@ -204,7 +202,6 @@ CORS_ALLOW_METHODS = [
     "PUT",
 ]
 
-# Разрешить определённые заголовки
 CORS_ALLOW_HEADERS = [
     "content-disposition",
     "accept-encoding",
@@ -215,14 +212,12 @@ CORS_ALLOW_HEADERS = [
     "access-control-allow-methods",
 ]
 
-# Разрешённые CSRF-источники
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://192.168.205.254:3000",
 ]
 
-# Разрешённые хосты для сервера
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",

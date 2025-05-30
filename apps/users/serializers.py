@@ -14,7 +14,7 @@ class UserSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'email', 'phone', 'role',
             'is_verified', 'replies_balance',
-            'executor_balance',  # Добавлено
+            'executor_balance',  
             'date_joined', 'is_active'
         ]
         read_only_fields = [
@@ -25,7 +25,7 @@ class UserSerializer(serializers.ModelSerializer):
     def get_executor_balance(self, obj):
         if obj.role == "исполнитель":
             return obj.executor_balance
-        return None  # не возвращаем значение для заказчиков
+        return None  
 
 
 

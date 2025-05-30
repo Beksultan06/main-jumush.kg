@@ -6,12 +6,9 @@ import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 model_path = os.path.join(BASE_DIR, "passport_model.keras")
 
-# Загрузка модели
 model = tf.keras.models.load_model(model_path)
 
-# Заменить словарь на тот, который ты получил при обучении (ПОРЯДОК ВАЖЕН!)
 class_indices = {'back': 0, 'face': 1, 'front': 2}
-# Обратный словарь (если хочешь выводить название предсказанного класса)
 class_names = {v: k for k, v in class_indices.items()}
 
 def predict_passport_photo(image_file, expected_type: str = None):

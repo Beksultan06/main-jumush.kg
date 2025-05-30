@@ -7,33 +7,26 @@ from .serializers import OrderSerializer
 from apps.users.permissions import IsCustomerPermission, IsExecutorPermission
 from django.db import transaction
 
-# 👤 Показывает и создаёт заказы для заказчика
 class CustomerOrderViewSet(viewsets.ModelViewSet):
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated, IsCustomerPermission]
 
     def get_queryset(self):
-        # Показывать все заказы из региона пользователя, которые ещё не приняты
         user_region = self.request.user.region
         return Orders.objects.filter(is_taken=False, region=user_region)
 
     def perform_create(self, serializer):
-        # Автоматически сохраняем пользователя, создавшего заказ
         serializer.save(created_by=self.request.user)
 
-
-# 🛠 Показывает список доступных заказов для исполнителя
 class ExecutorOrderListViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated, IsExecutorPermission]
 
     def get_queryset(self):
-        # Показываем все заказы в его регионе, которые ещё не взяты
         user_region = self.request.user.region
         return Orders.objects.filter(is_taken=False, region=user_region)
 
 
-# 🧾 Обработка принятия и оплаты заказа исполнителем
 class TakeOrderViewSet(viewsets.GenericViewSet):
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated, IsExecutorPermission]

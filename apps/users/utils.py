@@ -30,5 +30,4 @@ def send_reset_code(email, code):
     try:
         send_mail(subject, message, from_email, recipient_list)
     except Exception as e:
-        # Логировать ошибку или пробросить кастомное исключение
         print(f"Ошибка при отправке письма: {e}")

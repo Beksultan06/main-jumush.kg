@@ -12,7 +12,6 @@ dataset_dir = os.path.join(BASE_DIR, "dataset")
 img_height, img_width = 224, 224
 batch_size = 16
 
-# Генераторы данных
 datagen = ImageDataGenerator(
     rescale=1./255,
     horizontal_flip=True,
@@ -40,17 +39,14 @@ val_gen = datagen.flow_from_directory(
 
 print("Классы:", train_gen.class_indices)
 
-# Загружаем предобученную MobileNetV2 без верхушки
 base_model = MobileNetV2(
     input_shape=(img_height, img_width, 3),
     include_top=False,
     weights='imagenet'
 )
 
-# Замораживаем базовые слои
 base_model.trainable = False
 
-# Добавляем свою классификационную голову
 x = base_model.output
 x = GlobalAveragePooling2D()(x)
 x = Dropout(0.3)(x)
@@ -66,7 +62,6 @@ model.compile(
     metrics=['accuracy']
 )
 
-# Чекпоинт
 checkpoint_path = os.path.join(BASE_DIR, "passport_model.keras")
 checkpoint = ModelCheckpoint(
     checkpoint_path,
@@ -75,7 +70,6 @@ checkpoint = ModelCheckpoint(
     verbose=1
 )
 
-# Обучение
 model.fit(
     train_gen,
     validation_data=val_gen,
