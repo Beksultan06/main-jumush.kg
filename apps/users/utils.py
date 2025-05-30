@@ -4,7 +4,7 @@ from django.conf import settings
 from django.core.mail import send_mail
 
 def generate_code():
-    return str(random.randint(100000, 999999))
+    return str(random.randint(1000, 9999))
 
 def set_reset_code(email, code, expire=600):
     """

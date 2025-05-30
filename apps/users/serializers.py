@@ -105,18 +105,23 @@ class RequestResetPasswordSerializer(serializers.Serializer):
 
 class ConfirmResetPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField()
-    code = serializers.CharField(max_length=6)
+    code = serializers.CharField(max_length=4)
     new_password = serializers.CharField(min_length=8, write_only=True)
 
     def validate(self, data):
         email = data.get('email')
         code = data.get('code')
+
+        if not code.isdigit():
+            raise serializers.ValidationError('Код должен содержать только цифры.')
+
         saved_code = get_reset_code(email)
         if saved_code is None:
             raise serializers.ValidationError('Код истёк или не существует.')
         if saved_code != code:
             raise serializers.ValidationError('Неверный код.')
         return data
+
 
     def save(self, **kwargs):
         email = self.validated_data['email']
