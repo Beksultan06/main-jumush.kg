@@ -75,3 +75,7 @@ class TakeOrderViewSet(viewsets.GenericViewSet):
             "detail": f"С вашего баланса списано {order.price_for_executor} сомов. Теперь вы можете принять заказ.",
             "remaining_balance": user.executor_balance
         }, status=status.HTTP_200_OK)
+
+class OrderDetailAPI(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
+    queryset = Orders.objects.all
+    
