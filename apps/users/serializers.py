@@ -2,7 +2,6 @@ from rest_framework import serializers
 from .models import User
 import re, uuid
 from apps.users.utils import set_reset_code, send_reset_code
-from core.passport_classifier.utils import predict_passport_photo
 from apps.users.utils import generate_code, get_reset_code, delete_reset_code 
 
 
@@ -28,7 +27,6 @@ class UserSerializer(serializers.ModelSerializer):
         return None  
 
 
-
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
     passport_photo_with_face = serializers.ImageField(required=False)
@@ -52,25 +50,12 @@ class RegisterSerializer(serializers.ModelSerializer):
         role = data.get("role")
 
         if role and isinstance(role, str) and role.lower() == "исполнитель":
+            # Проверяем только, что фото есть, но не валидируем их содержимое
             if not data.get("passport_photo_with_face") or not data.get("passport_front") or not data.get("passport_back"):
                 raise serializers.ValidationError({
                     "passport_photo_with_face": "Обязательно загрузите фото с паспортом.",
                     "passport_front": "Обязательно загрузите переднюю сторону паспорта.",
                     "passport_back": "Обязательно загрузите обратную сторону паспорта.",
-                })
-            if not predict_passport_photo(data["passport_photo_with_face"], expected_type='face'):
-                raise serializers.ValidationError({
-                    "passport_photo_with_face": "Фото с паспортом не соответствует требованиям."
-                })
-
-            if not predict_passport_photo(data["passport_front"], expected_type='front'):
-                raise serializers.ValidationError({
-                    "passport_front": "Передняя сторона паспорта не распознана."
-                })
-
-            if not predict_passport_photo(data["passport_back"], expected_type='back'):
-                raise serializers.ValidationError({
-                    "passport_back": "Задняя сторона паспорта не распознана."
                 })
 
         return data
@@ -79,11 +64,19 @@ class RegisterSerializer(serializers.ModelSerializer):
         if "username" not in validated_data or not validated_data["username"]:
             validated_data["username"] = str(uuid.uuid4())
 
+        user = User.objects.create_user(**validated_data)
+
         role = validated_data.get("role")
         if role and isinstance(role, str) and role.lower() == "исполнитель":
-            validated_data["is_verified"] = True
+            from core.passport_classifier.tasks import validate_passport_images_task
+            validate_passport_images_task.delay(
+                user.id,
+                user.passport_photo_with_face.path,
+                user.passport_front.path,
+                user.passport_back.path,
+            )
 
-        return User.objects.create_user(**validated_data)
+        return user
 
     def validate_email(self, value):
         if User.objects.filter(email=value).exists():
@@ -96,7 +89,6 @@ class RegisterSerializer(serializers.ModelSerializer):
         return value
 
 
-
 class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(write_only=True)
     new_password = serializers.CharField(write_only=True, min_length=8)
@@ -105,6 +97,7 @@ class ChangePasswordSerializer(serializers.Serializer):
         if len(value) < 8:
             raise serializers.ValidationError("Новый пароль должен содержать минимум 8 символов.")
         return value
+
 
 class RequestResetPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField()
@@ -140,7 +133,6 @@ class ConfirmResetPasswordSerializer(serializers.Serializer):
         if saved_code != code:
             raise serializers.ValidationError('Неверный код.')
         return data
-
 
     def save(self, **kwargs):
         email = self.validated_data['email']
