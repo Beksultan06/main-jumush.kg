@@ -29,6 +29,7 @@ class Orders(models.Model):
     is_paid = models.BooleanField(default=False, verbose_name='Заказ оплачен исполнителем')
     region = models.ForeignKey(UserRegion, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Регион заказа')
     price_for_executor = models.PositiveIntegerField(default=50, verbose_name='Цена для исполнителя (сом)')
+    type_orders = models.CharField(max_length=155, verbose_name='Тип работы')
 
     def __str__(self):
         return self.title
