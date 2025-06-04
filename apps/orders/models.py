@@ -3,6 +3,44 @@ import os
 from apps.utils import convert_image_to_webp
 from django.conf import settings
 from apps.users.models import UserRegion
+from mptt.models import MPTTModel, TreeForeignKey
+from django.utils.text import slugify
+from django.urls import reverse
+
+class Category(MPTTModel):
+    title = models.CharField(max_length=255, verbose_name='Название категории')
+    slug = models.SlugField(unique=True, blank=True, verbose_name='Слаг')
+    parent = TreeForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='children',
+        verbose_name='Родительская категория'
+    )
+    is_active = models.BooleanField(default=True, verbose_name='Активна')
+
+    class MPTTMeta:
+        order_insertion_by = ['title']
+
+    class Meta:
+        verbose_name = 'Категория'
+        verbose_name_plural = 'Категории'
+
+    def __str__(self):
+        return self.title
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base_slug = slugify(self.title)
+            slug = base_slug
+            counter = 1
+            while Category.objects.filter(slug=slug).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            self.slug = slug
+        super().save(*args, **kwargs)
+
 
 
 class Orders(models.Model):
@@ -29,7 +67,14 @@ class Orders(models.Model):
     is_paid = models.BooleanField(default=False, verbose_name='Заказ оплачен исполнителем')
     region = models.ForeignKey(UserRegion, on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Регион заказа')
     price_for_executor = models.PositiveIntegerField(default=50, verbose_name='Цена для исполнителя (сом)')
-    type_orders = models.CharField(max_length=155, verbose_name='Тип работы')
+    type_orders = models.ForeignKey(
+        Category,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name='Тип работы (категория)'
+    )
+
 
     def __str__(self):
         return self.title

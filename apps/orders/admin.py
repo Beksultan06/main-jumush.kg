@@ -1,5 +1,9 @@
 from django.contrib import admin
 from apps.orders.models import Orders
+from mptt.admin import DraggableMPTTAdmin
+from apps.orders.models import Category
+
+admin.site.register(Category, DraggableMPTTAdmin)
 
 @admin.register(Orders)
 class OrdersAdmin(admin.ModelAdmin):

@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from apps.orders.models import Orders
+from apps.orders.models import Orders, Category
+from mptt.templatetags.mptt_tags import cache_tree_children
 
 class OrderSerializer(serializers.ModelSerializer):
     class Meta:
@@ -12,3 +13,23 @@ class OrderSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
+class RecursiveCategorySerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    title = serializers.CharField()
+    children = serializers.SerializerMethodField()
+
+    def get_children(self, obj):
+        if hasattr(obj, 'children'):
+            children = obj.children.all()
+            return RecursiveCategorySerializer(children, many=True).data
+        return []
+
+class CategorySerializer(serializers.ModelSerializer):
+    children = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Category
+        fields = ['id', 'title', 'slug', 'parent', 'children']
+
+    def get_children(self, obj):
+        return RecursiveCategorySerializer(obj.children.all(), many=True).data
