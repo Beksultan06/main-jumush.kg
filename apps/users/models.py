@@ -29,16 +29,25 @@ class CustomUserManager(BaseUserManager):
         return self.create_user(username, email, password, **extra_fields)
 
 class UserRegion(models.Model):
-    title = models.CharField(
-        max_length=155,
-        verbose_name='Регион',
-    )
+    title = models.CharField(max_length=155, verbose_name='Регион')
 
     def __str__(self):
         return self.title
 
     class Meta:
-        verbose_name_plural = 'Регион Пользователей'
+        verbose_name_plural = 'Регионы пользователей'
+
+
+class UserSubRegion(models.Model):
+    title = models.CharField(max_length=155, verbose_name='Подрегион (Район)')
+    region = models.ForeignKey(UserRegion, on_delete=models.CASCADE, related_name='subregions')
+
+    def __str__(self):
+        return f"{self.region.title} — {self.title}"
+
+    class Meta:
+        verbose_name_plural = 'Подрегионы пользователей'
+
 
 class User(AbstractUser, PermissionsMixin):
     ROLE = (
@@ -53,7 +62,14 @@ class User(AbstractUser, PermissionsMixin):
     phone = models.CharField(max_length=155, verbose_name='Номер телефона')
     is_verified = models.BooleanField(default=False)
     replies_balance = models.PositiveIntegerField(default=0)
-    region = models.ForeignKey('UserRegion', on_delete=models.SET_NULL, related_name='region', null=True)
+    subregion = models.ForeignKey(
+        UserSubRegion,
+        on_delete=models.SET_NULL,
+        related_name='users',
+        null=True,
+        blank=True,
+        verbose_name='Подрегион (район)'
+    )
     passport_photo_with_face = models.ImageField(upload_to='passport_photos/with_face/', null=True, blank=True)
     passport_front = models.ImageField(upload_to='passport_photos/front/', null=True, blank=True)
     passport_back = models.ImageField(upload_to='passport_photos/back/', null=True, blank=True)

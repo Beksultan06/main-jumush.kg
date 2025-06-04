@@ -1,19 +1,35 @@
 from rest_framework import serializers
-from .models import User
+from .models import User, UserRegion, UserSubRegion
 import re, uuid
 from apps.users.utils import set_reset_code, send_reset_code
-from apps.users.utils import generate_code, get_reset_code, delete_reset_code 
+from apps.users.utils import generate_code, get_reset_code, delete_reset_code
+
+
+class UserRegionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserRegion
+        fields = ['id', 'title']
+
+
+class UserSubRegionSerializer(serializers.ModelSerializer):
+    region = UserRegionSerializer(read_only=True)
+
+    class Meta:
+        model = UserSubRegion
+        fields = ['id', 'title', 'region']
 
 
 class UserSerializer(serializers.ModelSerializer):
     executor_balance = serializers.SerializerMethodField()
+    region = UserRegionSerializer(read_only=True)
+    subregion = UserSubRegionSerializer(read_only=True)
 
     class Meta:
         model = User
         fields = [
             'id', 'email', 'phone', 'role',
             'is_verified', 'replies_balance',
-            'executor_balance',  
+            'executor_balance', 'region', 'subregion',
             'date_joined', 'is_active'
         ]
         read_only_fields = [
@@ -27,18 +43,28 @@ class UserSerializer(serializers.ModelSerializer):
         return None  
 
 
+
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
     passport_photo_with_face = serializers.ImageField(required=False)
     passport_front = serializers.ImageField(required=False)
     passport_back = serializers.ImageField(required=False)
+    
+    # Добавляем region только для валидации и передачи
+    region = serializers.PrimaryKeyRelatedField(
+        queryset=UserRegion.objects.all(), write_only=True
+    )
 
     class Meta:
         model = User
         fields = [
-            "username", 'email', "region", 'password', 'phone', 'role',
-            'passport_photo_with_face', 'passport_front', 'passport_back'
+            "username", "email", "region", "subregion", "password",
+            "phone", "role", "passport_photo_with_face",
+            "passport_front", "passport_back"
         ]
+        extra_kwargs = {
+            "subregion": {"required": True},
+        }
 
     def validate_phone(self, value):
         pattern = r'^\+996\d{9}$'
@@ -49,8 +75,16 @@ class RegisterSerializer(serializers.ModelSerializer):
     def validate(self, data):
         role = data.get("role")
 
+        # Проверка, чтобы subregion соответствовал выбранному региону
+        region = data.get("region")
+        subregion = data.get("subregion")
+
+        if subregion and region and subregion.region != region:
+            raise serializers.ValidationError({
+                "subregion": "Этот подрегион не относится к выбранному региону."
+            })
+
         if role and isinstance(role, str) and role.lower() == "исполнитель":
-            # Проверяем только, что фото есть, но не валидируем их содержимое
             if not data.get("passport_photo_with_face") or not data.get("passport_front") or not data.get("passport_back"):
                 raise serializers.ValidationError({
                     "passport_photo_with_face": "Обязательно загрузите фото с паспортом.",
@@ -61,13 +95,15 @@ class RegisterSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        if "username" not in validated_data or not validated_data["username"]:
+        validated_data.pop("region", None)  # region не нужен при создании User
+
+        if not validated_data.get("username"):
             validated_data["username"] = str(uuid.uuid4())
 
         user = User.objects.create_user(**validated_data)
 
         role = validated_data.get("role")
-        if role and isinstance(role, str) and role.lower() == "исполнитель":
+        if role and role.lower() == "исполнитель":
             from core.passport_classifier.tasks import validate_passport_images_task
             validate_passport_images_task.delay(
                 user.id,

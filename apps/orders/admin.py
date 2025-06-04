@@ -7,6 +7,6 @@ admin.site.register(Category, DraggableMPTTAdmin)
 
 @admin.register(Orders)
 class OrdersAdmin(admin.ModelAdmin):
-    list_display = ['id', 'title', 'created_by', 'executor', 'is_paid', 'region']
-    list_filter = ['id', 'title', 'created_by', 'executor', 'is_paid', 'region']
-    search_fields = ['id', 'title', 'created_by', 'executor', 'is_paid', 'region']
+    list_display = ['id', 'title', 'created_by', 'executor', 'is_paid', 'region', 'type_orders']
+    list_filter = ['id', 'title', 'created_by', 'executor', 'is_paid', 'region', 'type_orders']
+    search_fields = ['id', 'title', 'created_by', 'executor', 'is_paid', 'region', 'type_orders']
