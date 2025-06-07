@@ -1,17 +1,45 @@
 from rest_framework import serializers
-from apps.orders.models import Orders, Category
-from mptt.templatetags.mptt_tags import cache_tree_children
+from apps.orders.models import Orders, Category, OrderImage
+
+
+class OrderImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrderImage
+        fields = ['id', 'image']
+
 
 class OrderSerializer(serializers.ModelSerializer):
+    images = OrderImageSerializer(many=True, write_only=True, required=False)
+    image_urls = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = Orders
-        fields = '__all__'
-        read_only_fields = ['created_by', 'executor', 'is_taken']   
+        fields = [
+            'id', 'title', 'description', 'created_at', 'created_by',
+            'executor', 'is_taken', 'is_paid', 'region', 'type_orders',
+            'price_for_executor', 'budget', 'deadline', 'contact_phone',
+            'latitude', 'longitude', 'images', 'image_urls'
+        ]
+        read_only_fields = ['created_by', 'executor', 'is_taken', 'image_urls']
+
+    def get_image_urls(self, obj):
+        request = self.context.get('request')
+        return [request.build_absolute_uri(image.image.url) for image in obj.images.all()] if request else []
+
+    def validate_images(self, value):
+        if len(value) > 5:
+            raise serializers.ValidationError("Можно загрузить не более 5 изображений.")
+        return value
 
     def create(self, validated_data):
+        images_data = validated_data.pop('images', [])
         validated_data['created_by'] = self.context['request'].user
-        return super().create(validated_data)
+        order = super().create(validated_data)
 
+        for image_data in images_data:
+            OrderImage.objects.create(order=order, image=image_data['image'])
+
+        return order
 
 class RecursiveCategorySerializer(serializers.Serializer):
     id = serializers.IntegerField()
@@ -23,6 +51,7 @@ class RecursiveCategorySerializer(serializers.Serializer):
             children = obj.children.all()
             return RecursiveCategorySerializer(children, many=True).data
         return []
+
 
 class CategorySerializer(serializers.ModelSerializer):
     children = serializers.SerializerMethodField()
